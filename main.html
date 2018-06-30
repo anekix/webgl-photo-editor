@@ -137,6 +137,97 @@ const fs_source = `
 
 `;
 
+const brightness_source = `
+	precision mediump float;
+
+	  varying vec2 vUV;
+	  uniform sampler2D uTexture;
+
+	void main(){
+		float brightness=0.6;
+		 gl_FragColor = texture2D(uTexture, vUV);
+		 gl_FragColor.rgb += brightness;
+		
+	}
+
+`;
+
+
+const contrast_source = `
+	precision mediump float;
+
+	  varying vec2 vUV;
+	  uniform sampler2D uTexture;
+
+	void main(){
+		float contrast=2.6;
+		 gl_FragColor = texture2D(uTexture, vUV);
+		 gl_FragColor.rgb *= contrast;
+		
+	}
+
+`;
+
+
+
+/*
+Refrence : https://forum.yoyogames.com/index.php?threads/grayscale-shader.1657/
+
+Understanding luminance is important when converting an image to grayscale. This is because grayscale conversion is accomplished by replacing a pixel's color with its luminance value. So what is luminance?
+According to google it is the intensity of light emitted from a surface per unit area in a given direction.
+So basically, luminance is the overall brightness of a color, without reference to the color's hue.
+
+The weighted vector that we will use for calculating luminance is:
+
+	const vec3 weight = vec3(0.2125,0.7154,0.0721);
+
+You may notice that this is green. This is because
+(according to Wikipedia) green light contributes the most to the intensity perceived by humans, and blue light the least.
+
+
+	vec3 colors = texture2D(gm_BaseTexture,vTc).rgb; //Where vTc is the varying texture coordinates.
+
+Computing the luminance value is achieved by taking the dot product of the color vector with the weighted vector like this:
+
+	float luminance = dot(colors,weight);
+
+The only step that is left is to output the luminance value:
+
+	gl_FragColor=vec4(luminance,luminance,luminance,1.);
+
+If you want to retain the image's original alpha value, then you can store the value in a float:
+
+	float alpha=texture2D(gm_BaseTexture,vTc).a;
+
+Then the final output would be:
+
+	gl_FragColor=vec4(luminance,luminance,luminance,alpha);
+
+*/
+const greyscale_source = `
+	precision mediump float;
+
+	  varying vec2 vUV;
+	  uniform sampler2D uTexture;
+
+	void main(){
+		float contrast=2.6;
+		const vec3 weight = vec3(0.2125,0.7154,0.0721);
+
+		vec3 colors = texture2D(uTexture, vUV).rgb;
+		
+		float luminance = dot(colors,weight);
+
+		 
+		gl_FragColor=vec4(luminance,luminance,luminance,1.0);
+
+
+
+		
+	}
+
+`;
+
 
 
 
@@ -144,7 +235,7 @@ const fs_source = `
 var vertexShader = createShader(gl, vs_source, gl.VERTEX_SHADER);
 
 //create fragment shader
-var fragShader = createShader(gl, fs_source, gl.FRAGMENT_SHADER);
+var fragShader = createShader(gl, greyscale_source, gl.FRAGMENT_SHADER);
 
 //create program
 var program = createProgram(gl,vertexShader, fragShader);
@@ -153,6 +244,8 @@ var program = createProgram(gl,vertexShader, fragShader);
 aPosition = gl.getAttribLocation(program,"aPosition");
 aUV = gl.getAttribLocation(program,"aUV");
 uTexture = gl.getUniformLocation(program,"uTexture");
+	// Setup GL State
+	gl.useProgram(program); 
 
 
 	gl.uniform1i(uTexture,0);
@@ -172,8 +265,6 @@ uTexture = gl.getUniformLocation(program,"uTexture");
 	  -0.5,-0.5,  0.0,1.0,
 	]);
 
-	// Setup GL State
-	gl.useProgram(program); 
 
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D,texture);
